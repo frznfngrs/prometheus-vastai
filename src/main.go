@@ -33,6 +33,14 @@ var (
 		"master-url",
 		"Query global data from the master exporter and not from Vast.ai directly.",
 	).String()
+	maxMindKey = kingpin.Flag(
+		"maxmind-key",
+		"API key for MaxMind GeoIP web services.",
+	).PlaceHolder("USERID:KEY").String()
+	noGeoLocation = kingpin.Flag(
+		"no-geolocation",
+		"Exculde IP ranges from geolocation",
+	).PlaceHolder("IP[/NN],IP[/NN],...").String()
 )
 
 func metricsHandler(w http.ResponseWriter, r *http.Request, collector prometheus.Collector) {
@@ -56,14 +64,32 @@ func main() {
 		*stateDir = "/tmp"
 	}
 
+	// load or init geolocation cache (will be nil if MaxMind key is not supploid)
+	var err error
+	geoCache, err = loadGeoCache()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	log.Infoln("Reading initial Vast.ai info (may take a minute)")
+
+	// read info from vast.ai: offers
+	info := getVastAiInfo(*masterUrl)
+	err = offerCache.InitialUpdateFrom(info)
+	if err != nil {
+		// initial update must succeed, otherwise exit
+		log.Fatalln(err)
+	}
+
+	// read info from vast.ai: global stats
+	vastAiGlobalCollector := newVastAiGlobalCollector()
+	vastAiGlobalCollector.UpdateFrom(&offerCache)
 
 	// read info from vast.ai: account stats (if api key is specified)
 	useAccount := *apiKey != ""
 	vastAiAccountCollector := newVastAiAccountCollector()
 	if useAccount {
-		info := getVastAiInfo(*masterUrl) // <-- Added this line to define 'info'
-		err := vastAiAccountCollector.InitialUpdateFrom(info, &offerCache)
+		err = vastAiAccountCollector.InitialUpdateFrom(info, &offerCache)
 		if err != nil {
 			// initial update must succeed, otherwise exit
 			log.Fatalln(err)
@@ -72,16 +98,43 @@ func main() {
 		log.Infoln("No Vast.ai API key provided, only serving global stats")
 	}
 
+	http.HandleFunc("/offers", func(w http.ResponseWriter, r *http.Request) {
+		// json list of offers
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(offerCache.rawOffersJson(false))
+	})
+	http.HandleFunc("/machines", func(w http.ResponseWriter, r *http.Request) {
+		// json list of machines
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(offerCache.rawOffersJson(true))
+	})
+	http.HandleFunc("/hosts", func(w http.ResponseWriter, r *http.Request) {
+		// json list of hosts
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(offerCache.hostsJson())
+	})
+	http.HandleFunc("/gpu-stats", func(w http.ResponseWriter, r *http.Request) {
+		// json gpu stats
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(offerCache.gpuStatsJson())
+	})
+	http.HandleFunc("/host-map-data", func(w http.ResponseWriter, r *http.Request) {
+		// json for geomap
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(offerCache.hostMapJson())
+	})
+	http.HandleFunc("/metrics/global", func(w http.ResponseWriter, r *http.Request) {
+		// global stats
+		metricsHandler(w, r, vastAiGlobalCollector)
+	})
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		// account stats (if api key is specified)
 		if useAccount {
 			metricsHandler(w, r, vastAiAccountCollector)
 		} else {
-			// if there's no API key, serve a simple error message
-			http.Error(w, "No Vast.ai API key provided", http.StatusUnauthorized)
+			metricsHandler(w, r, vastAiGlobalCollector)
 		}
 	})
-
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// index page
 		if r.URL.Path != "/" {
@@ -90,10 +143,14 @@ func main() {
 		}
 		w.Write([]byte(`<html><head><title>Vast.ai Exporter</title></head><body><h1>Vast.ai Exporter</h1>`))
 		if useAccount {
-			w.Write([]byte(`<a href="metrics">Account stats</a><br><br>`))
+			w.Write([]byte(`<a href="metrics">Account stats</a><br><a href="metrics/global">Per-model stats on GPUs</a><br><br>`))
 		} else {
-			w.Write([]byte(`No Vast.ai API key provided<br><br>`))
+			w.Write([]byte(`<a href="metrics">Per-model stats on GPUs</a><br><br>`))
 		}
+		w.Write([]byte(`<a href="offers">JSON list of offers</a><br>`))
+		w.Write([]byte(`<a href="machines">JSON list of machines</a><br>`))
+		w.Write([]byte(`<a href="hosts">JSON list of hosts</a><br>`))
+		w.Write([]byte(`<a href="gpu-stats">JSON per-model stats on GPUs</a><br>`))
 		w.Write([]byte(`</body></html>`))
 	})
 
@@ -101,6 +158,8 @@ func main() {
 		for {
 			time.Sleep(*updateInterval)
 			info := getVastAiInfo(*masterUrl)
+			offerCache.UpdateFrom(info)
+			vastAiGlobalCollector.UpdateFrom(&offerCache)
 			if useAccount {
 				vastAiAccountCollector.UpdateFrom(info, &offerCache)
 			}
