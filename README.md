@@ -12,24 +12,16 @@ Prometheus exporter reporting data from your Vast.ai account:
 - Your on-demand and bid prices. 
 - Stats of hosts' offerings of GPU models that you have.
 
-In addition to per-account Prometheus metrics (url: `/metrics`), the exporter provides the following data:
-
-- Global stats over all types of GPUs in Prometheus format (url: `/metrics/global`).
-- Global stats over all types of GPUs in JSON (url: `/gpu-stats`).
-- List of offers available on Vast.ai in JSON (url: `/offers`).
-- List of machines available on Vast.ai in JSON (url: `/machines`).
-- List of Vast.ai hosts in JSON (url: `/hosts`).
-- Data used to build map of hosts with Grafana (url: `/host-map-data`).
+In per-account Prometheus metrics at  (url: `/metrics`), 
 
 _NOTE: This is a work in progress. Output format is subject to change._
 
 ### Usage
 
 ```
-docker run -d --restart always -p 8622:8622 500farm/vastai-exporter \
+docker run -d --restart always -p 8622:8622 jjziets/vastai-exporter \
     --key=VASTKEY \
-    --state-dir=/var/run/vastai-exporter \
-    --master-url=https://500.farm/vastai-exporter
+    --state-dir=/var/run/vastai-exporter
 ```
 Replace _VASTKEY_ with your Vast.ai API key. To test, open http://localhost:8622. If does not work, check container output with `docker logs`.
 
@@ -238,13 +230,3 @@ vastai_ondemand_price_90th_percentile_dollars{gpu_name="RTX 3080",rented="yes",v
 vastai_ondemand_price_90th_percentile_dollars{gpu_name="RTX 3080",rented="yes",verified="no"} 0.5
 vastai_ondemand_price_90th_percentile_dollars{gpu_name="RTX 3080",rented="yes",verified="yes"} 0.65
 ```
-
-### Live examples of global stats
-
-_Real data from Vast.ai, updated every minute._
-
-- [Global stats over all types of GPUs (Prometheus)](https://500.farm/vastai-exporter/metrics/global)
-- [Global stats over all types of GPUs (JSON)](https://500.farm/vastai-exporter/gpu-stats)
-- [List of offers available on Vast.ai (JSON)](https://500.farm/vastai-exporter/offers)
-- [List of machines available on Vast.ai (JSON)](https://500.farm/vastai-exporter/machines)
-- [List of Vast.ai hosts (JSON)](https://500.farm/vastai-exporter/hosts)
