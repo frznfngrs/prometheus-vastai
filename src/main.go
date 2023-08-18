@@ -29,26 +29,7 @@ var (
 		"state-dir",
 		"Path to store state files (default $HOME)",
 	).String()
-	masterUrl = kingpin.Flag(
-		"master-url",
-		"Query global data from the master exporter and not from Vast.ai directly.",
-	).String()
-	maxMindKey = kingpin.Flag(
-		"maxmind-key",
-		"API key for MaxMind GeoIP web services.",
-	).PlaceHolder("USERID:KEY").String()
-	noGeoLocation = kingpin.Flag(
-		"no-geolocation",
-		"Exculde IP ranges from geolocation",
-	).PlaceHolder("IP[/NN],IP[/NN],...").String()
 )
-
-func metricsHandler(w http.ResponseWriter, r *http.Request, collector prometheus.Collector) {
-	registry := prometheus.NewRegistry()
-	registry.MustRegister(collector)
-	h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
-	h.ServeHTTP(w, r)
-}
 
 func main() {
 	kingpin.Version(version.Print("vastai_exporter"))
@@ -64,72 +45,35 @@ func main() {
 		*stateDir = "/tmp"
 	}
 
-	// load or init geolocation cache (will be nil if MaxMind key is not supploid)
-	var err error
-	geoCache, err = loadGeoCache()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
 	log.Infoln("Reading initial Vast.ai info (may take a minute)")
 
-	// read info from vast.ai: offers
-	info := getVastAiInfo(*masterUrl)
-	err = offerCache.InitialUpdateFrom(info)
-	if err != nil {
-		// initial update must succeed, otherwise exit
-		log.Fatalln(err)
-	}
+	machinesCollector := NewMachinesCollector(*apiKey)
+	machineEarningsCollector := NewMachineEarningsCollector(*apiKey)
 
-	// read info from vast.ai: global stats
-	vastAiGlobalCollector := newVastAiGlobalCollector()
-	vastAiGlobalCollector.UpdateFrom(&offerCache)
-
-	// read info from vast.ai: account stats (if api key is specified)
-	useAccount := *apiKey != ""
-	vastAiAccountCollector := newVastAiAccountCollector()
-	if useAccount {
-		err = vastAiAccountCollector.InitialUpdateFrom(info, &offerCache)
-		if err != nil {
-			// initial update must succeed, otherwise exit
-			log.Fatalln(err)
-		}
-	} else {
-		log.Infoln("No Vast.ai API key provided, only serving global stats")
-	}
+	registry := prometheus.NewRegistry()
+	registry.MustRegister(machinesCollector)
+	registry.MustRegister(machineEarningsCollector)
 
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		// account stats (if api key is specified)
-		if useAccount {
-			metricsHandler(w, r, vastAiAccountCollector)
-		} else {
-			metricsHandler(w, r, vastAiGlobalCollector)
-		}
+		h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
+		h.ServeHTTP(w, r)
 	})
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		// index page
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
 			return
 		}
 		w.Write([]byte(`<html><head><title>Vast.ai Exporter</title></head><body><h1>Vast.ai Exporter</h1>`))
-		if useAccount {
-			w.Write([]byte(`<a href="metrics">Account stats</a><br><a href="metrics/global">Per-model stats on GPUs</a><br><br>`))
-		} else {
-			w.Write([]byte(`<a href="metrics">Per-model stats on GPUs</a><br><br>`))
-		}
+		w.Write([]byte(`<a href="metrics">Metrics</a>`))
 		w.Write([]byte(`</body></html>`))
 	})
 
 	go func() {
 		for {
 			time.Sleep(*updateInterval)
-			info := getVastAiInfo(*masterUrl)
-			offerCache.UpdateFrom(info)
-			vastAiGlobalCollector.UpdateFrom(&offerCache)
-			if useAccount {
-				vastAiAccountCollector.UpdateFrom(info, &offerCache)
-			}
+			machinesCollector.Update()          // updated method name
+			machineEarningsCollector.Update()
 		}
 	}()
 
