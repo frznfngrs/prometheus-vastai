@@ -81,10 +81,6 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	// read info from vast.ai: global stats
-	vastAiGlobalCollector := newVastAiGlobalCollector()
-	vastAiGlobalCollector.UpdateFrom(&offerCache)
-
 	// read info from vast.ai: account stats (if api key is specified)
 	useAccount := *apiKey != ""
 	vastAiAccountCollector := newVastAiAccountCollector()
@@ -123,16 +119,13 @@ func main() {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(offerCache.hostMapJson())
 	})
-	http.HandleFunc("/metrics/global", func(w http.ResponseWriter, r *http.Request) {
-		// global stats
-		metricsHandler(w, r, vastAiGlobalCollector)
-	})
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		// account stats (if api key is specified)
 		if useAccount {
 			metricsHandler(w, r, vastAiAccountCollector)
 		} else {
-			metricsHandler(w, r, vastAiGlobalCollector)
+			// if there's no API key, serve a simple error message
+			http.Error(w, "No Vast.ai API key provided", http.StatusUnauthorized)
 		}
 	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -143,9 +136,9 @@ func main() {
 		}
 		w.Write([]byte(`<html><head><title>Vast.ai Exporter</title></head><body><h1>Vast.ai Exporter</h1>`))
 		if useAccount {
-			w.Write([]byte(`<a href="metrics">Account stats</a><br><a href="metrics/global">Per-model stats on GPUs</a><br><br>`))
+			w.Write([]byte(`<a href="metrics">Account stats</a><br><br>`))
 		} else {
-			w.Write([]byte(`<a href="metrics">Per-model stats on GPUs</a><br><br>`))
+			w.Write([]byte(`No Vast.ai API key provided<br><br>`))
 		}
 		w.Write([]byte(`<a href="offers">JSON list of offers</a><br>`))
 		w.Write([]byte(`<a href="machines">JSON list of machines</a><br>`))
@@ -159,7 +152,6 @@ func main() {
 			time.Sleep(*updateInterval)
 			info := getVastAiInfo(*masterUrl)
 			offerCache.UpdateFrom(info)
-			vastAiGlobalCollector.UpdateFrom(&offerCache)
 			if useAccount {
 				vastAiAccountCollector.UpdateFrom(info, &offerCache)
 			}
