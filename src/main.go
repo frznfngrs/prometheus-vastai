@@ -98,35 +98,6 @@ func main() {
 		log.Infoln("No Vast.ai API key provided, only serving global stats")
 	}
 
-	http.HandleFunc("/offers", func(w http.ResponseWriter, r *http.Request) {
-		// json list of offers
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(offerCache.rawOffersJson(false))
-	})
-	http.HandleFunc("/machines", func(w http.ResponseWriter, r *http.Request) {
-		// json list of machines
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(offerCache.rawOffersJson(true))
-	})
-	http.HandleFunc("/hosts", func(w http.ResponseWriter, r *http.Request) {
-		// json list of hosts
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(offerCache.hostsJson())
-	})
-	http.HandleFunc("/gpu-stats", func(w http.ResponseWriter, r *http.Request) {
-		// json gpu stats
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(offerCache.gpuStatsJson())
-	})
-	http.HandleFunc("/host-map-data", func(w http.ResponseWriter, r *http.Request) {
-		// json for geomap
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(offerCache.hostMapJson())
-	})
-	http.HandleFunc("/metrics/global", func(w http.ResponseWriter, r *http.Request) {
-		// global stats
-		metricsHandler(w, r, vastAiGlobalCollector)
-	})
 	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		// account stats (if api key is specified)
 		if useAccount {
@@ -147,10 +118,6 @@ func main() {
 		} else {
 			w.Write([]byte(`<a href="metrics">Per-model stats on GPUs</a><br><br>`))
 		}
-		w.Write([]byte(`<a href="offers">JSON list of offers</a><br>`))
-		w.Write([]byte(`<a href="machines">JSON list of machines</a><br>`))
-		w.Write([]byte(`<a href="hosts">JSON list of hosts</a><br>`))
-		w.Write([]byte(`<a href="gpu-stats">JSON per-model stats on GPUs</a><br>`))
 		w.Write([]byte(`</body></html>`))
 	})
 
