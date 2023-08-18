@@ -62,6 +62,7 @@ func main() {
 	useAccount := *apiKey != ""
 	vastAiAccountCollector := newVastAiAccountCollector()
 	if useAccount {
+		info := getVastAiInfo(*masterUrl) // <-- Added this line to define 'info'
 		err := vastAiAccountCollector.InitialUpdateFrom(info, &offerCache)
 		if err != nil {
 			// initial update must succeed, otherwise exit
