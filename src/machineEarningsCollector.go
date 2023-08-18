@@ -44,12 +44,12 @@ func (c *machineEarningsCollector) Collect(ch chan<- prometheus.Metric) {
 
 // Update fetches data from the /machine-earnings endpoint and updates the metrics.
 func (c *machineEarningsCollector) Update() {
-	req, err := http.NewRequest("GET", "https://console.vast.ai/api/v0/users/me/machine-earnings", nil)
+	url := fmt.Sprintf("https://console.vast.ai/api/v0/users/me/machine-earnings?api_key=%s", c.apiKey)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Errorln("Failed to create new request:", err)
 		return
 	}
-	req.Header.Add("Authorization", "Bearer "+c.apiKey)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

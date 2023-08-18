@@ -4,48 +4,76 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
 )
 
 type machinesCollector struct {
-	apiKey           string
-	currentBalance   prometheus.Gauge
-	currentServiceFee prometheus.Gauge
-	totalGPU          prometheus.Gauge
+	apiKey        string
+	totalMachines prometheus.Gauge
+	numGPUs       *prometheus.GaugeVec
+	totalFlops    *prometheus.GaugeVec
+	gpuRAM        *prometheus.GaugeVec
+	cpuRAM        *prometheus.GaugeVec
+	cpuCores      *prometheus.GaugeVec
 }
 
 func NewMachinesCollector(apiKey string) *machinesCollector {
 	return &machinesCollector{
-		apiKey:           apiKey,
-		currentBalance:   prometheus.NewGauge(prometheus.GaugeOpts{Name: "vastai_machine_earnings_current_balance"}),
-		currentServiceFee: prometheus.NewGauge(prometheus.GaugeOpts{Name: "vastai_machine_earnings_current_service_fee"}),
-		totalGPU:          prometheus.NewGauge(prometheus.GaugeOpts{Name: "vastai_machine_earnings_total_gpu"}),
+		apiKey: apiKey,
+		totalMachines: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "vastai_machines_total",
+			Help: "Total number of machines.",
+		}),
+		numGPUs: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "vastai_machine_num_gpus",
+			Help: "Number of GPUs in a machine.",
+		}, []string{"machine_id", "hostname"}),
+		totalFlops: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "vastai_machine_total_flops",
+			Help: "Total FLOPs of a machine.",
+		}, []string{"machine_id", "hostname"}),
+		gpuRAM: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "vastai_machine_gpu_ram",
+			Help: "GPU RAM of a machine.",
+		}, []string{"machine_id", "hostname"}),
+		cpuRAM: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "vastai_machine_cpu_ram",
+			Help: "CPU RAM of a machine.",
+		}, []string{"machine_id", "hostname"}),
+		cpuCores: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "vastai_machine_cpu_cores",
+			Help: "Number of CPU cores in a machine.",
+		}, []string{"machine_id", "hostname"}),
 	}
 }
 
 func (c *machinesCollector) Describe(ch chan<- *prometheus.Desc) {
-	c.currentBalance.Describe(ch)
-	c.currentServiceFee.Describe(ch)
-	c.totalGPU.Describe(ch)
+	c.totalMachines.Describe(ch)
+	c.numGPUs.Describe(ch)
+	c.totalFlops.Describe(ch)
+	c.gpuRAM.Describe(ch)
+	c.cpuRAM.Describe(ch)
+	c.cpuCores.Describe(ch)
 }
 
 func (c *machinesCollector) Collect(ch chan<- prometheus.Metric) {
 	c.Update()
-
-	c.currentBalance.Collect(ch)
-	c.currentServiceFee.Collect(ch)
-	c.totalGPU.Collect(ch)
+	c.totalMachines.Collect(ch)
+	c.numGPUs.Collect(ch)
+	c.totalFlops.Collect(ch)
+	c.gpuRAM.Collect(ch)
+	c.cpuRAM.Collect(ch)
+	c.cpuCores.Collect(ch)
 }
 
 func (c *machinesCollector) Update() {
-	req, err := http.NewRequest("GET", "https://console.vast.ai/api/v0/users/me/machine-earnings", nil)
+	url := fmt.Sprintf("https://console.vast.ai/api/v0/users/me/machine-earnings?api_key=%s", c.apiKey)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Errorln("Failed to create new request:", err)
 		return
 	}
-	req.Header.Add("Authorization", "Bearer "+c.apiKey)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
