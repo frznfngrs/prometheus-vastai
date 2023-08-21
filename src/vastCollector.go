@@ -138,7 +138,7 @@ func (c *VastCollector) Describe(ch chan<- *prometheus.Desc) {
 	}
 }
 
-func (c *VastCollector) Collect(ch chan<- prometheus.Metric) {
+func (c *VastCollector) fetchMachineEarnings(ch chan<- prometheus.Metric) {
 	earningsURL := fmt.Sprintf("https://console.vast.ai/api/v0/users/me/machine-earnings?api_key=%s", c.apiKey)
 	req, err := http.NewRequest("GET", earningsURL, nil)
 	if err != nil {
@@ -184,4 +184,15 @@ func (c *VastCollector) Collect(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.metrics["per_day_bwu_earn"], prometheus.GaugeValue, day.BwuEarn, strconv.Itoa(day.Day))
 		ch <- prometheus.MustNewConstMetric(c.metrics["per_day_bwd_earn"], prometheus.GaugeValue, day.BwdEarn, strconv.Itoa(day.Day))
 	}
+}
+
+func (c *VastCollector) Describe(ch chan<- *prometheus.Desc) {
+	for _, metric := range c.metrics {
+		ch <- metric
+	}
+}
+
+func (c *VastCollector) Collect(ch chan<- prometheus.Metric) {
+	c.fetchMachineEarnings(ch)
+	// Call other fetch methods as you add them
 }
