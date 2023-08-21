@@ -193,6 +193,11 @@ func NewVastCollector(apiKey string) *VastCollector {
 				"Number of GPUs in the machine",
 				nil, nil,
 			),
+			"machine_gpu_name": prometheus.NewDesc(
+			"vastai_machine_gpu_name",
+			"Machine GPU Name",
+			[]string{"machine_id", "gpu_name"}, nil,
+			),
 			"machine_total_flops": prometheus.NewDesc(
 				"vastai_machine_total_flops",
 				"Machine total FLOPS",
@@ -363,6 +368,13 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			prometheus.GaugeValue,
 			float64(machine.NumGpus),
 			strconv.Itoa(machine.MachineID),
+		)
+		ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc("vast_machine_gpu_name", "Type and total of GPUs in the machine", []string{"machine_id"}, nil),
+			prometheus.GaugeValue,
+			float64(machine.NumGpus),
+			strconv.Itoa(machine.MachineID),
+			machine.GpuName,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc("vast_machine_total_flops", "Machine total FLOPS", []string{"machine_id"}, nil),
