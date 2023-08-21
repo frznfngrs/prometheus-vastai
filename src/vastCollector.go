@@ -273,31 +273,27 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 	}
 
 	for _, machine := range machinesAPI.Machines {
-		// Create and send the desired metrics to the channel.
 		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vast_machine_id", "Machine ID", nil, nil),
+			c.metrics["machine_id"],
 			prometheus.GaugeValue,
 			float64(machine.MachineID),
 		)
 		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vast_machine_timeout", "Machine timeout", nil, nil),
+			c.metrics["machine_timeout"],
 			prometheus.GaugeValue,
 			float64(machine.Timeout),
 		)
 		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vast_machine_num_gpus", "Number of GPUs in the machine", nil, nil),
+			c.metrics["machine_num_gpus"],
 			prometheus.GaugeValue,
 			float64(machine.NumGpus),
 		)
-		// ... Repeat this pattern for all the desired metrics.
-
-		// For example, for total_flops:
 		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vast_machine_total_flops", "Machine total FLOPS", nil, nil),
+			c.metrics["machine_total_flops"],
 			prometheus.GaugeValue,
 			machine.TotalFlops,
 		)
-		// ... Repeat this pattern for all the desired metrics.
+		// Add more metrics here as needed
 	}
 }
 
