@@ -255,17 +255,17 @@ func NewVastCollector(apiKey string) *VastCollector {
 				[]string{"machine_id"}, nil,
 			),
 			"gpu_rented_on_demand": prometheus.NewDesc(
-				"vastai_gpu_rented_on_demand",
+				"vastai_machine_gpu_rented_on_demand",
 				"Number of GPUs rented on-demand",
 				[]string{"machine_id"}, nil,
 			),
 			"gpu_rented_bid_demand": prometheus.NewDesc(
-				"vastai_gpu_rented_bid_demand",
+				"vastai_machine_gpu_rented_bid_demand",
 				"Number of GPUs rented bid-demand",
 				[]string{"machine_id"}, nil,
 			),
 			"gpu_idle": prometheus.NewDesc(
-				"machine_gpu_idle",
+				"vastai_machine_gpu_idle",
 				"Number of GPUs idle",
 				[]string{"machine_id"}, nil,
 			),			
