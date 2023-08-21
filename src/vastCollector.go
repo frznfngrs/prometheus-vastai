@@ -370,7 +370,7 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			strconv.Itoa(machine.MachineID),
 		)
 		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vast_machine_gpu_name", "Type and total of GPUs in the machine", []string{"machine_id"}, nil),
+			prometheus.NewDesc("vast_machine_gpu_name", "Type and total number of GPUs in the machine", []string{"machine_id","gpu_name"}, nil),
 			prometheus.GaugeValue,
 			float64(machine.NumGpus),
 			strconv.Itoa(machine.MachineID),
