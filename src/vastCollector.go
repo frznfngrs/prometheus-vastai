@@ -391,6 +391,7 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			1.0,
 			strconv.Itoa(machine.MachineID),
 			machine.Hostname,
+		)
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["machine_current_rentals_running"],
 			prometheus.GaugeValue,
