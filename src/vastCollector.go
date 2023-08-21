@@ -354,16 +354,29 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			machine.TotalFlops,
 			strconv.Itoa(machine.MachineID),
 		)
+		var listedValue float64
+		if machine.Listed {
+			listedValue = 1.0
+		} else {
+			listedValue = 0.0
+		}	
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc("vast_machine_Listed", "Machine Listed", []string{"machine_id"}, nil),
 			prometheus.GaugeValue,
-			machine.Listed,
+			listedValue,
 			strconv.Itoa(machine.MachineID),
-		)		
+		)	
+		var verificationValue float64
+		if machine.Verification == "verified" {
+			verificationValue = 1.0
+		} else {
+			verificationValue = 0.0
+		}	
+		
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc("vast_machine_Verification", "Machine Verification", []string{"machine_id"}, nil),
 			prometheus.GaugeValue,
-			machine.Verification,
+			verificationValue,
 			strconv.Itoa(machine.MachineID),
 		)
 		ch <- prometheus.MustNewConstMetric(
@@ -373,11 +386,11 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			strconv.Itoa(machine.MachineID),
 		)
 		ch <- prometheus.MustNewConstMetric(
-			c.metrics["machine_hostname"],
+			prometheus.NewDesc("vast_machine_hostname", "Machine Hostname", []string{"machine_id", "hostname"}, nil),
 			prometheus.GaugeValue,
-			float64(machine.Hostname),
+			1.0,
 			strconv.Itoa(machine.MachineID),
-		)
+			machine.Hostname,
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["machine_current_rentals_running"],
 			prometheus.GaugeValue,
