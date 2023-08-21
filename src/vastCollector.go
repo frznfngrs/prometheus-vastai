@@ -249,7 +249,7 @@ func (c *VastCollector) fetchMachineEarnings(ch chan<- prometheus.Metric) {
 }
 
 func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
-	machinesURL := fmt.Sprintf("https://console.vast.ai/api/v0/users/me/machines?api_key=%s", c.apiKey)
+	machinesURL := fmt.Sprintf("https://console.vast.ai/api/v0/machines/?api_key=%s", c.apiKey)
 	req, err := http.NewRequest("GET", machinesURL, nil)
 	if err != nil {
 		log.Fatalf("Failed to create request: %s", err)
