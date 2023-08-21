@@ -176,7 +176,8 @@ func NewVastCollector(apiKey string) *VastCollector {
 				"vastai_per_day_bwd_earn",
 				"Bandwidth download earnings per day",
 				[]string{"day"}, nil,
-			),			"machine_id": prometheus.NewDesc(
+			),			
+			"machine_id": prometheus.NewDesc(
 				"vastai_machine_id",
 				"Machine ID",
 				nil, nil,
@@ -189,11 +190,6 @@ func NewVastCollector(apiKey string) *VastCollector {
 			"machine_num_gpus": prometheus.NewDesc(
 				"vastai_machine_num_gpus",
 				"Number of GPUs in the machine",
-				nil, nil,
-			),
-			"machine_total_flops": prometheus.NewDesc(
-				"vastai_machine_total_flops",
-				"Machine total FLOPS",
 				nil, nil,
 			),
 			"machine_total_flops": prometheus.NewDesc(
