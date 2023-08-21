@@ -253,6 +253,21 @@ func NewVastCollector(apiKey string) *VastCollector {
 				"Available disk space on machine",
 				[]string{"machine_id"}, nil,
 			),
+			"gpu_rented_on_demand": prometheus.NewDesc(
+				"vastai_gpu_rented_on_demand",
+				"Number of GPUs rented on-demand",
+				[]string{"machine_id"}, nil,
+			),
+			"gpu_rented_bid_demand": prometheus.NewDesc(
+				"vastai_gpu_rented_bid_demand",
+				"Number of GPUs rented bid-demand",
+				[]string{"machine_id"}, nil,
+			),
+			"gpu_idle": prometheus.NewDesc(
+				"vastai_gpu_idle",
+				"Number of GPUs idle",
+				[]string{"machine_id"}, nil,
+			),			
 		},
 	}
 }
@@ -434,6 +449,30 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			float64(machine.AvailDiskSpace),
 			strconv.Itoa(machine.MachineID),
 		)
+		for _, machine := range machinesAPI.Machines {
+		// ...existing code
+		gpuRentedOnDemand := strings.Count(machine.GpuOccupancy, "D")
+		gpuRentedBidDemand := strings.Count(machine.GpuOccupancy, "I")
+		gpuIdle := strings.Count(machine.GpuOccupancy, "x")
+		
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["gpu_rented_on_demand"],
+			prometheus.GaugeValue,
+			float64(gpuRentedOnDemand),
+			strconv.Itoa(machine.MachineID),
+		)
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["gpu_rented_bid_demand"],
+			prometheus.GaugeValue,
+			float64(gpuRentedBidDemand),
+			strconv.Itoa(machine.MachineID),
+		)
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["gpu_idle"],
+			prometheus.GaugeValue,
+			float64(gpuIdle),
+			strconv.Itoa(machine.MachineID),
+		)	
 	}
 }
 
