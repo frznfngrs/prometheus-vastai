@@ -212,6 +212,62 @@ func NewVastCollector(apiKey string) *VastCollector {
 				"Machine Reliability",
 				[]string{"machine_id"}, nil,
 			),
+			"machine_Listed": prometheus.NewDesc(
+				"vastai_machine_Listed",
+				"Machine Listed",
+				[]string{"machine_id"}, nil,
+			),
+			"machine_Verification": prometheus.NewDesc(
+				"vastai_machine_Verification",
+				"Machine Verification",
+				[]string{"machine_id"}, nil,
+			),
+			"machine_Reliability": prometheus.NewDesc(
+				"vastai_machine_Reliability",
+				"Machine Reliability",
+				[]string{"machine_id"}, nil,
+			),
+			// New metrics
+			"machine_hostname": prometheus.NewDesc(
+				"vastai_machine_hostname",
+				"Machine Hostname",
+				[]string{"machine_id"}, nil,
+			),
+			"machine_current_rentals_running": prometheus.NewDesc(
+				"vastai_machine_current_rentals_running",
+				"Current rentals running on machine",
+				[]string{"machine_id"}, nil,
+			),
+			"machine_current_rentals_running_on_demand": prometheus.NewDesc(
+				"vastai_machine_current_rentals_running_on_demand",
+				"Current rentals running on demand on machine",
+				[]string{"machine_id"}, nil,
+			),
+			"machine_current_rentals_resident": prometheus.NewDesc(
+				"vastai_machine_current_rentals_resident",
+				"Current resident rentals on machine",
+				[]string{"machine_id"}, nil,
+			),
+			"machine_current_rentals_on_demand": prometheus.NewDesc(
+				"vastai_machine_current_rentals_on_demand",
+				"Current on-demand rentals on machine",
+				[]string{"machine_id"}, nil,
+			),
+			"machine_max_disk_space": prometheus.NewDesc(
+				"vastai_machine_max_disk_space",
+				"Maximum disk space on machine",
+				[]string{"machine_id"}, nil,
+			),
+			"machine_alloc_disk_space": prometheus.NewDesc(
+				"vastai_machine_alloc_disk_space",
+				"Allocated disk space on machine",
+				[]string{"machine_id"}, nil,
+			),
+			"machine_avail_disk_space": prometheus.NewDesc(
+				"vastai_machine_avail_disk_space",
+				"Available disk space on machine",
+				[]string{"machine_id"}, nil,
+			),
 		},
 	}
 }
@@ -329,6 +385,54 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			prometheus.NewDesc("vast_machine_Reliability", "Machine Reliability", []string{"machine_id"}, nil),
 			prometheus.GaugeValue,
 			machine.Reliability2,
+			strconv.Itoa(machine.MachineID),
+		)
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_hostname"],
+			prometheus.GaugeValue,
+			float64(machine.Hostname),
+			strconv.Itoa(machine.MachineID),
+		)
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_current_rentals_running"],
+			prometheus.GaugeValue,
+			float64(machine.CurrentRentalsRunning),
+			strconv.Itoa(machine.MachineID),
+		)
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_current_rentals_running_on_demand"],
+			prometheus.GaugeValue,
+			float64(machine.CurrentRentalsRunningOnDemand),
+			strconv.Itoa(machine.MachineID),
+		)
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_current_rentals_resident"],
+			prometheus.GaugeValue,
+			float64(machine.CurrentRentalsResident),
+			strconv.Itoa(machine.MachineID),
+		)
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_current_rentals_on_demand"],
+			prometheus.GaugeValue,
+			float64(machine.CurrentRentalsOnDemand),
+			strconv.Itoa(machine.MachineID),
+		)
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_max_disk_space"],
+			prometheus.GaugeValue,
+			float64(machine.MaxDiskSpace),
+			strconv.Itoa(machine.MachineID),
+		)
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_alloc_disk_space"],
+			prometheus.GaugeValue,
+			float64(machine.AllocDiskSpace),
+			strconv.Itoa(machine.MachineID),
+		)
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_avail_disk_space"],
+			prometheus.GaugeValue,
+			float64(machine.AvailDiskSpace),
 			strconv.Itoa(machine.MachineID),
 		)
 	}
