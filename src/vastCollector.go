@@ -449,8 +449,7 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			float64(machine.AvailDiskSpace),
 			strconv.Itoa(machine.MachineID),
 		)
-		for _, machine := range machinesAPI.Machines {
-		// ...existing code
+
 		gpuRentedOnDemand := strings.Count(machine.GpuOccupancy, "D")
 		gpuRentedBidDemand := strings.Count(machine.GpuOccupancy, "I")
 		gpuIdle := strings.Count(machine.GpuOccupancy, "x")
