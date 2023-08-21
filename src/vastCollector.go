@@ -1,11 +1,12 @@
+// vastCollector.go
 package main
 
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
+
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -34,7 +35,6 @@ func NewVastCollector(apiKey string) *VastCollector {
 				"Total number of machines",
 				nil, nil,
 			),
-			// Add more metrics here as needed
 		},
 		totalMachines: prometheus.NewDesc(
 			"vastai_machines_total",
@@ -52,48 +52,56 @@ func (c *VastCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (c *VastCollector) Collect(ch chan<- prometheus.Metric) {
-	// Fetch data from machineEarnings endpoint
 	earningsURL := fmt.Sprintf("https://console.vast.ai/api/v0/users/me/machine-earnings?api_key=%s", c.apiKey)
-	resp, err := http.Get(earningsURL)
+	req, err := http.NewRequest("GET", earningsURL, nil)
 	if err != nil {
-		log.Printf("Error fetching machine earnings data: %s", err)
+		log.Fatalf("Failed to create request: %s", err)
+		return
+	}
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatalf("Failed to make request: %s", err)
 		return
 	}
 	defer resp.Body.Close()
 
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
 	var earningsData map[string]interface{}
-	err = json.Unmarshal(bodyBytes, &earningsData)
+	err = json.NewDecoder(resp.Body).Decode(&earningsData)
 	if err != nil {
 		log.Printf("Error decoding machine earnings data: %s", err)
 		return
 	}
-	log.Println("Successfully fetched machine earnings data.")
+
 	currentBalance := earningsData["current"].(map[string]interface{})["balance"].(float64)
 	totalGPU := earningsData["summary"].(map[string]interface{})["total_gpu"].(float64)
 
 	ch <- prometheus.MustNewConstMetric(c.metrics["earnings_current_balance"], prometheus.GaugeValue, currentBalance)
 	ch <- prometheus.MustNewConstMetric(c.metrics["earnings_total_gpu"], prometheus.GaugeValue, totalGPU)
 
-	// Fetch data from Machines endpoint
 	machinesURL := fmt.Sprintf("https://console.vast.ai/api/v0/machines?api_key=%s", c.apiKey)
-	resp, err = http.Get(machinesURL)
+	req, err = http.NewRequest("GET", machinesURL, nil)
 	if err != nil {
-		log.Printf("Error fetching machines data: %s", err)
+		log.Fatalf("Failed to create request: %s", err)
+		return
+	}
+	req.Header.Set("Accept", "application/json")
+
+	resp, err = client.Do(req)
+	if err != nil {
+		log.Fatalf("Failed to make request: %s", err)
 		return
 	}
 	defer resp.Body.Close()
 
 	var machinesData map[string][]interface{}
-	err = json.Unmarshal(bodyBytes, &machinesData)
+	err = json.NewDecoder(resp.Body).Decode(&machinesData)
 	if err != nil {
 		log.Printf("Error decoding machines data: %s", err)
 		return
 	}
-	log.Println("Successfully fetched machines data.")
 
 	totalMachines := float64(len(machinesData["machines"]))
 	ch <- prometheus.MustNewConstMetric(c.totalMachines, prometheus.GaugeValue, totalMachines)
