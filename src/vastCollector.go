@@ -39,6 +39,11 @@ type machineEarningsAPI struct {
 	} `json:"per_day"`
 }
 
+type VastCollector struct {
+	apiKey  string
+	metrics map[string]*prometheus.Desc
+}
+
 func NewVastCollector(apiKey string) *VastCollector {
 	return &VastCollector{
 		apiKey: apiKey,
@@ -124,12 +129,6 @@ func NewVastCollector(apiKey string) *VastCollector {
 				[]string{"day"}, nil,
 			),
 		},
-	}
-}
-
-func (c *VastCollector) Describe(ch chan<- *prometheus.Desc) {
-	for _, metric := range c.metrics {
-		ch <- metric
 	}
 }
 
