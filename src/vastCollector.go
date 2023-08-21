@@ -196,7 +196,7 @@ func NewVastCollector(apiKey string) *VastCollector {
 			"machine_gpu_name": prometheus.NewDesc(
 			"vastai_machine_gpu_name",
 			"Machine GPU Name",
-			[]string{"machine_id", "gpu_name"}, nil,
+			[]string{"machine_id"}, nil,
 			),
 			"machine_total_flops": prometheus.NewDesc(
 				"vastai_machine_total_flops",
