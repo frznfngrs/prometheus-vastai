@@ -1,82 +1,34 @@
 package main
 
 import (
+	"flag"
+	"fmt"
+	"log"
 	"net/http"
 	"os"
-	"time"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/log"
-	"github.com/prometheus/common/version"
-	"gopkg.in/alecthomas/kingpin.v2"
-)
-
-var (
-	listenAddress = kingpin.Flag(
-		"listen",
-		"Address to listen on.",
-	).Default(":8622").String()
-	apiKey = kingpin.Flag(
-		"key",
-		"Vast.ai API key",
-	).Default("").String()
-	updateInterval = kingpin.Flag(
-		"update-interval",
-		"How often to query Vast.ai for updates",
-	).Default("1m").Duration()
-	stateDir = kingpin.Flag(
-		"state-dir",
-		"Path to store state files (default $HOME)",
-	).String()
 )
 
 func main() {
-	kingpin.Version(version.Print("vastai_exporter"))
-	kingpin.HelpFlag.Short('h')
-	kingpin.Parse()
+	apiKey := flag.String("api-key", "", "Vast.ai API key")
+	listenAddress := flag.String("listen-address", ":8622", "Address to listen on for HTTP requests.")
+	flag.Parse()
 
-	log.Infoln("Starting vast.ai exporter")
-
-	if *stateDir == "" {
-		*stateDir = os.Getenv("HOME")
-	}
-	if *stateDir == "" {
-		*stateDir = "/tmp"
+	if *apiKey == "" {
+		fmt.Println("API key must be provided")
+		os.Exit(1)
 	}
 
-	log.Infoln("Reading initial Vast.ai info (may take a minute)")
-
-	machinesCollector := NewMachinesCollector(*apiKey)
-	machineEarningsCollector := NewMachineEarningsCollector(*apiKey)
-
-	registry := prometheus.NewRegistry()
-	registry.MustRegister(machinesCollector)
-	registry.MustRegister(machineEarningsCollector)
-
-	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
-		h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
-		h.ServeHTTP(w, r)
-	})
+	collector := NewVastCollector(*apiKey)
+	prometheus.DefaultRegisterer.Unregister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
+	prometheus.DefaultRegisterer.Unregister(prometheus.NewGoCollector())
+	prometheus.MustRegister(collector)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-		w.Write([]byte(`<html><head><title>Vast.ai Exporter</title></head><body><h1>Vast.ai Exporter</h1>`))
-		w.Write([]byte(`<a href="metrics">Metrics</a>`))
-		w.Write([]byte(`</body></html>`))
+		w.Write([]byte("<h1>Vast.ai Exporter</h1><p><a href='/metrics'>Metrics</a></p>"))
 	})
-
-	go func() {
-		for {
-			time.Sleep(*updateInterval)
-			machinesCollector.Update()          // updated method name
-			machineEarningsCollector.Update()
-		}
-	}()
-
-	log.Infoln("Listening on", *listenAddress)
+	http.Handle("/metrics", promhttp.Handler())
+	log.Printf("Starting vast.ai exporter on %s", *listenAddress)
 	log.Fatal(http.ListenAndServe(*listenAddress, nil))
 }
