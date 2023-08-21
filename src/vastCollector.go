@@ -201,7 +201,21 @@ func NewVastCollector(apiKey string) *VastCollector {
 				"Machine total FLOPS",
 				nil, nil,
 			),
-
+			"machine_Listed": prometheus.NewDesc(
+				"vastai_machine_Listed",
+				"Machine Listed",
+				[]string{"machine_id"}, nil,
+			),
+			"machine_Verification": prometheus.NewDesc(
+				"vastai_machine_Verification",
+				"Machine Verification",
+				[]string{"machine_id"}, nil,
+			),
+			"machine_Reliability": prometheus.NewDesc(
+				"vastai_machine_Reliability",
+				"Machine Reliability",
+				[]string{"machine_id"}, nil,
+			),
 		},
 	}
 }
