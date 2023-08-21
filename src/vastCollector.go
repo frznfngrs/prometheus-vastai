@@ -273,27 +273,31 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 	}
 
 	for _, machine := range machinesAPI.Machines {
+		labels := prometheus.Labels{"machine_id": strconv.Itoa(machine.MachineID)}
 		ch <- prometheus.MustNewConstMetric(
-			c.metrics["machine_id"],
+			prometheus.NewDesc("vast_machine_id", "Machine ID", []string{"machine_id"}, nil),
 			prometheus.GaugeValue,
 			float64(machine.MachineID),
+			strconv.Itoa(machine.MachineID),
 		)
 		ch <- prometheus.MustNewConstMetric(
-			c.metrics["machine_timeout"],
+			prometheus.NewDesc("vast_machine_timeout", "Machine timeout", []string{"machine_id"}, nil),
 			prometheus.GaugeValue,
 			float64(machine.Timeout),
+			strconv.Itoa(machine.MachineID),
 		)
 		ch <- prometheus.MustNewConstMetric(
-			c.metrics["machine_num_gpus"],
+			prometheus.NewDesc("vast_machine_num_gpus", "Number of GPUs in the machine", []string{"machine_id"}, nil),
 			prometheus.GaugeValue,
 			float64(machine.NumGpus),
+			strconv.Itoa(machine.MachineID),
 		)
 		ch <- prometheus.MustNewConstMetric(
-			c.metrics["machine_total_flops"],
+			prometheus.NewDesc("vast_machine_total_flops", "Machine total FLOPS", []string{"machine_id"}, nil),
 			prometheus.GaugeValue,
 			machine.TotalFlops,
+			strconv.Itoa(machine.MachineID),
 		)
-		// Add more metrics here as needed
 	}
 }
 
