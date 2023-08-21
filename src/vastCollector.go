@@ -273,7 +273,6 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 	}
 
 	for _, machine := range machinesAPI.Machines {
-		labels := prometheus.Labels{"machine_id": strconv.Itoa(machine.MachineID)}
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc("vast_machine_id", "Machine ID", []string{"machine_id"}, nil),
 			prometheus.GaugeValue,
@@ -300,6 +299,7 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 		)
 	}
 }
+
 
 
 
