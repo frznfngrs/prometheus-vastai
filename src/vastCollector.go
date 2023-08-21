@@ -39,6 +39,55 @@ type machineEarningsAPI struct {
 	} `json:"per_day"`
 }
 
+type MachinesAPI struct {
+	Machines []struct {
+		MachineID                     int         `json:"machine_id"`
+		Hostname                      string      `json:"hostname"`
+		Timeout                       int         `json:"timeout"`
+		NumGpus                       int         `json:"num_gpus"`
+		TotalFlops                    float64     `json:"total_flops"`
+		GpuName                       string      `json:"gpu_name"`
+		GpuRAM                        int         `json:"gpu_ram"`
+		GpuMaxCurTemp                 float64     `json:"gpu_max_cur_temp"`
+		GpuLanes                      int         `json:"gpu_lanes"`
+		GpuMemBw                      float64     `json:"gpu_mem_bw"`
+		BwNvlink                      float64     `json:"bw_nvlink"`
+		PcieBw                        float64     `json:"pcie_bw"`
+		PciGen                        float64     `json:"pci_gen"`
+		CPUName                       string      `json:"cpu_name"`
+		CPURAM                        int         `json:"cpu_ram"`
+		CPUCores                      int         `json:"cpu_cores"`
+		Listed                        bool        `json:"listed"`
+		CreditDiscountMax             float64     `json:"credit_discount_max"`
+		ListedMinGpuCount             int         `json:"listed_min_gpu_count"`
+		ListedGpuCost                 float64     `json:"listed_gpu_cost"`
+		ListedStorageCost             float64     `json:"listed_storage_cost"`
+		ListedInetUpCost              float64     `json:"listed_inet_up_cost"`
+		ListedInetDownCost            float64     `json:"listed_inet_down_cost"`
+		MinBidPrice                   float64     `json:"min_bid_price"`
+		GpuOccupancy                  string      `json:"gpu_occupancy"`
+		BidGpuCost                    interface{} `json:"bid_gpu_cost"`
+		DiskSpace                     int         `json:"disk_space"`
+		MaxDiskSpace                  int         `json:"max_disk_space"`
+		AllocDiskSpace                int         `json:"alloc_disk_space"`
+		AvailDiskSpace                int         `json:"avail_disk_space"`
+		DiskName                      string      `json:"disk_name"`
+		DiskBw                        float64     `json:"disk_bw"`
+		InetUp                        float64     `json:"inet_up"`
+		InetDown                      float64     `json:"inet_down"`
+		EarnHour                      float64     `json:"earn_hour"`
+		EarnDay                       float64     `json:"earn_day"`
+		Verification                  string      `json:"verification"`
+		ErrorDescription              interface{} `json:"error_description"`
+		CurrentRentalsRunning         int         `json:"current_rentals_running"`
+		CurrentRentalsRunningOnDemand int         `json:"current_rentals_running_on_demand"`
+		CurrentRentalsResident        int         `json:"current_rentals_resident"`
+		CurrentRentalsOnDemand        int         `json:"current_rentals_on_demand"`
+		Reliability2                  float64     `json:"reliability2"`
+		DirectPortCount               int         `json:"direct_port_count"`
+	} `json:"machines"`
+}
+
 type VastCollector struct {
 	apiKey  string
 	metrics map[string]*prometheus.Desc
@@ -127,6 +176,25 @@ func NewVastCollector(apiKey string) *VastCollector {
 				"vastai_per_day_bwd_earn",
 				"Bandwidth download earnings per day",
 				[]string{"day"}, nil,
+			),			"machine_id": prometheus.NewDesc(
+				"vastai_machine_id",
+				"Machine ID",
+				nil, nil,
+			),
+			"machine_timeout": prometheus.NewDesc(
+				"vastai_machine_timeout",
+				"Machine timeout",
+				nil, nil,
+			),
+			"machine_num_gpus": prometheus.NewDesc(
+				"vastai_machine_num_gpus",
+				"Number of GPUs in the machine",
+				nil, nil,
+			),
+			"machine_total_flops": prometheus.NewDesc(
+				"vastai_machine_total_flops",
+				"Machine total FLOPS",
+				nil, nil,
 			),
 		},
 	}
@@ -180,6 +248,61 @@ func (c *VastCollector) fetchMachineEarnings(ch chan<- prometheus.Metric) {
 	}
 }
 
+func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
+	machinesURL := fmt.Sprintf("https://console.vast.ai/api/v0/users/me/machines?api_key=%s", c.apiKey)
+	req, err := http.NewRequest("GET", machinesURL, nil)
+	if err != nil {
+		log.Fatalf("Failed to create request: %s", err)
+		return
+	}
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatalf("Failed to make request: %s", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	var machinesAPI MachinesAPI
+	err = json.NewDecoder(resp.Body).Decode(&machinesAPI)
+	if err != nil {
+		log.Fatalf("Failed to decode JSON response: %s", err)
+		return
+	}
+
+	for _, machine := range machinesAPI.Machines {
+		// Create and send the desired metrics to the channel.
+		ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc("vast_machine_id", "Machine ID", nil, nil),
+			prometheus.GaugeValue,
+			float64(machine.MachineID),
+		)
+		ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc("vast_machine_timeout", "Machine timeout", nil, nil),
+			prometheus.GaugeValue,
+			float64(machine.Timeout),
+		)
+		ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc("vast_machine_num_gpus", "Number of GPUs in the machine", nil, nil),
+			prometheus.GaugeValue,
+			float64(machine.NumGpus),
+		)
+		// ... Repeat this pattern for all the desired metrics.
+
+		// For example, for total_flops:
+		ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc("vast_machine_total_flops", "Machine total FLOPS", nil, nil),
+			prometheus.GaugeValue,
+			machine.TotalFlops,
+		)
+		// ... Repeat this pattern for all the desired metrics.
+	}
+}
+
+
+
 func (c *VastCollector) Describe(ch chan<- *prometheus.Desc) {
 	for _, metric := range c.metrics {
 		ch <- metric
@@ -188,5 +311,6 @@ func (c *VastCollector) Describe(ch chan<- *prometheus.Desc) {
 
 func (c *VastCollector) Collect(ch chan<- prometheus.Metric) {
 	c.fetchMachineEarnings(ch)
+	c.fetchMachines(ch)
 	// Call other fetch methods as you add them
 }
