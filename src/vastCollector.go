@@ -273,7 +273,12 @@ func NewVastCollector(apiKey string) *VastCollector {
 				"vastai_machine_gpu_idle",
 				"Number of GPUs idle",
 				[]string{"machine_id"}, nil,
-			),			
+			),	
+			"machine_earn_hour": prometheus.NewDesc(
+				"vastai_machine_earn_hour",
+				"Machine earn hour",
+				[]string{"machine_id"}, nil,
+			),	
 		},
 	}
 }
@@ -485,6 +490,12 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			float64(gpuIdle),
 			strconv.Itoa(machine.MachineID),
 		)	
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_earn_hour"],
+			prometheus.GaugeValue,
+			float64(EarnHour),
+			strconv.Itoa(machine.MachineID),
+		)
 	}
 }
 
