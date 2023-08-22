@@ -44,7 +44,7 @@ type MachinesAPI struct {
 	Machines []struct {
 		MachineID                     int         `json:"machine_id"`
 		Hostname                      string      `json:"hostname"`
-		Timeout                       int         `json:"timeout"`
+		Timeout                       float64     `json:"timeout"`
 		NumGpus                       int         `json:"num_gpus"`
 		TotalFlops                    float64     `json:"total_flops"`
 		GpuName                       string      `json:"gpu_name"`
