@@ -493,7 +493,7 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["machine_earn_hour"],
 			prometheus.GaugeValue,
-			float64(EarnHour),
+			float64(machine.EarnHour),
 			strconv.Itoa(machine.MachineID),
 		)
 	}
