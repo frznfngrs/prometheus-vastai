@@ -279,6 +279,11 @@ func NewVastCollector(apiKey string) *VastCollector {
 				"Machine earn hour",
 				[]string{"machine_id"}, nil,
 			),	
+			"machine_ErrorDescription": prometheus.NewDesc(
+				"vastai_machine_ErrorDescription",
+				"Machine Error Description",
+				[]string{"machine_id", "error_description"}, nil,
+			),
 		},
 	}
 }
@@ -495,6 +500,28 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			prometheus.GaugeValue,
 			float64(machine.EarnHour),
 			strconv.Itoa(machine.MachineID),
+		)
+		var errorDescription string
+		var errorValue float64
+		if machine.ErrorDescription == nil {
+			errorDescription = ""
+			errorValue = 0.0 // No error
+		} else {
+			errorDescription = fmt.Sprintf("%v", machine.ErrorDescription)
+			if errorDescription != "" {
+				errorValue = 1.0 // There is an error
+			} else {
+				errorValue = 0.0 // No error
+			}
+		}
+
+		// Send ErrorDescription to Prometheus
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_ErrorDescription"],
+			prometheus.GaugeValue,
+			errorValue,
+			strconv.Itoa(machine.MachineID),
+			errorDescription,
 		)
 	}
 }
