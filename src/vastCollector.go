@@ -218,6 +218,17 @@ func NewVastCollector(apiKey string) *VastCollector {
 				"Machine Reliability",
 				[]string{"machine_id"}, nil,
 			),
+			"machine_InetUp": prometheus.NewDesc(
+				"vastai_machine_InetUp",
+				"Machine Inet Up",
+				[]string{"machine_id"}, nil,
+			),
+
+			"machine_InetDown": prometheus.NewDesc(
+				"vastai_machine_InetDown",
+				"Machine Inet Down",
+				[]string{"machine_id"}, nil,
+			),
 			// New metrics
 			"machine_hostname": prometheus.NewDesc(
 				"vastai_machine_hostname",
@@ -421,6 +432,19 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			prometheus.NewDesc("vast_machine_Reliability", "Machine Reliability", []string{"machine_id"}, nil),
 			prometheus.GaugeValue,
 			machine.Reliability2,
+			strconv.Itoa(machine.MachineID),
+		)
+				ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc("vastai_machine_InetUp", "Machine Inet Up", []string{"machine_id"}, nil),
+			prometheus.GaugeValue,
+			machine.InetUp,
+			strconv.Itoa(machine.MachineID),
+		)
+
+		ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc("vast_machine_InetDown", "Machine Inet Down", []string{"machine_id"}, nil),
+			prometheus.GaugeValue,
+			machine.InetDown,
 			strconv.Itoa(machine.MachineID),
 		)
 		ch <- prometheus.MustNewConstMetric(
