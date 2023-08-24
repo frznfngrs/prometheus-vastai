@@ -505,13 +505,13 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 		var errorValue float64
 		if machine.ErrorDescription == nil {
 			errorDescription = ""
-			errorValue = 0.0 // No error
+			errorValue = 1.0 // No error
 		} else {
 			errorDescription = fmt.Sprintf("%v", machine.ErrorDescription)
 			if errorDescription != "" {
-				errorValue = 1.0 // There is an error
+				errorValue = 10.0 // There is an error
 			} else {
-				errorValue = 0.0 // No error
+				errorValue = 1.0 // No error
 			}
 		}
 
