@@ -11,6 +11,16 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+var (
+    gpuOccupancyGauge = prometheus.NewGaugeVec(
+        prometheus.GaugeOpts{
+            Name: "vastai_machine_gpu_occupancy",
+            Help: "GPU occupancy state per machine and GPU number.",
+        },
+        []string{"machine_id", "gpu"},
+    )
+)
+
 type machineEarningsAPI struct {
 	Summary struct {
 		TotalGpu  float64 `json:"total_gpu"`
@@ -347,6 +357,32 @@ func (c *VastCollector) fetchMachineEarnings(ch chan<- prometheus.Metric) {
 	}
 }
 
+func parseGpuOccupancy(occupancy string, machineID string, ch chan<- prometheus.Metric) {
+    // Remove spaces from the occupancy string
+    occupancyNoSpaces := strings.ReplaceAll(occupancy, " ", "")
+    
+    for i, char := range occupancyNoSpaces {
+        state := 0
+        switch char {
+        case 'D':
+            state = 2
+        case 'I':
+            state = 1
+        case 'x':
+            state = 0
+        }
+        // Emitting the GPU occupancy metric with corrected index
+        ch <- prometheus.MustNewConstMetric(
+            prometheus.NewDesc("vastai_machine_gpu_occupancy", "GPU occupancy state per machine and GPU number.", []string{"machine_id", "gpu"}, nil),
+            prometheus.GaugeValue,
+            float64(state),
+            machineID,
+            strconv.Itoa(i), // i now correctly represents the GPU index
+        )
+    }
+}
+
+
 func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 	machinesURL := fmt.Sprintf("https://console.vast.ai/api/v0/machines/?api_key=%s", c.apiKey)
 	req, err := http.NewRequest("GET", machinesURL, nil)
@@ -519,6 +555,11 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			float64(gpuIdle),
 			strconv.Itoa(machine.MachineID),
 		)	
+
+		gpuOccupancy := machine.GpuOccupancy // Ensure this field exists and is correctly named
+        machineID := strconv.Itoa(machine.MachineID) // Convert machine ID to string
+        parseGpuOccupancy(gpuOccupancy, machineID, ch)
+		
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["machine_earn_hour"],
 			prometheus.GaugeValue,
