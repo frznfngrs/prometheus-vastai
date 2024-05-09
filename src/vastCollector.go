@@ -364,6 +364,8 @@ func parseGpuOccupancy(occupancy string, machineID string, hostname string, ch c
     for i, char := range occupancyNoSpaces {
         state := 0
         switch char {
+        case 'R':
+            state = 3
         case 'D':
             state = 2
         case 'I':
@@ -554,6 +556,7 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 		)
 
 		gpuRentedOnDemand := strings.Count(machine.GpuOccupancy, "D")
+		gpuRentedReserved := strings.Count(machine.GpuOccupancy, "R")
 		gpuRentedBidDemand := strings.Count(machine.GpuOccupancy, "I")
 		gpuIdle := strings.Count(machine.GpuOccupancy, "x")
 		
@@ -563,6 +566,12 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			float64(gpuRentedOnDemand),
 			strconv.Itoa(machine.MachineID),
 			machine.Hostname,
+		)
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["gpu_rented_on_reserved"],
+			prometheus.GaugeValue,
+			float64(gpuRentedReserved),
+			strconv.Itoa(machine.MachineID),
 		)
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["gpu_rented_bid_demand"],
