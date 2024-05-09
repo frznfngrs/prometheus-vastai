@@ -572,6 +572,7 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			prometheus.GaugeValue,
 			float64(gpuRentedReserved),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,  // Add this if the metric description includes the hostname
 		)
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["gpu_rented_bid_demand"],
