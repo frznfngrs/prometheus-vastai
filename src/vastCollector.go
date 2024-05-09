@@ -206,7 +206,7 @@ func NewVastCollector(apiKey string) *VastCollector {
 			"machine_gpu_name": prometheus.NewDesc(
 			"vastai_machine_gpu_name",
 			"Machine GPU Name",
-			[]string{"machine_id"}, nil,
+			[]string{"machine_id", "hostname"}, nil,
 			),
 			"machine_total_flops": prometheus.NewDesc(
 				"vastai_machine_total_flops",
@@ -216,94 +216,94 @@ func NewVastCollector(apiKey string) *VastCollector {
 			"machine_Listed": prometheus.NewDesc(
 				"vastai_machine_Listed",
 				"Machine Listed",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 			"machine_Verification": prometheus.NewDesc(
 				"vastai_machine_Verification",
 				"Machine Verification",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 			"machine_Reliability": prometheus.NewDesc(
 				"vastai_machine_Reliability",
 				"Machine Reliability",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 			"machine_InetUp": prometheus.NewDesc(
 				"vastai_machine_InetUp",
 				"Machine Inet Up",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 
 			"machine_InetDown": prometheus.NewDesc(
 				"vastai_machine_InetDown",
 				"Machine Inet Down",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 			// New metrics
 			"machine_hostname": prometheus.NewDesc(
 				"vastai_machine_hostname",
 				"Machine Hostname",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 			"machine_current_rentals_running": prometheus.NewDesc(
 				"vastai_machine_current_rentals_running",
 				"Current rentals running on machine",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 			"machine_current_rentals_running_on_demand": prometheus.NewDesc(
 				"vastai_machine_current_rentals_running_on_demand",
 				"Current rentals running on demand on machine",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 			"machine_current_rentals_resident": prometheus.NewDesc(
 				"vastai_machine_current_rentals_resident",
 				"Current resident rentals on machine",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 			"machine_current_rentals_on_demand": prometheus.NewDesc(
 				"vastai_machine_current_rentals_on_demand",
 				"Current on-demand rentals on machine",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 			"machine_max_disk_space": prometheus.NewDesc(
 				"vastai_machine_max_disk_space",
 				"Maximum disk space on machine",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 			"machine_alloc_disk_space": prometheus.NewDesc(
 				"vastai_machine_alloc_disk_space",
 				"Allocated disk space on machine",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 			"machine_avail_disk_space": prometheus.NewDesc(
 				"vastai_machine_avail_disk_space",
 				"Available disk space on machine",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 			"gpu_rented_on_demand": prometheus.NewDesc(
 				"vastai_machine_gpu_rented_on_demand",
 				"Number of GPUs rented on-demand",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 			"gpu_rented_bid_demand": prometheus.NewDesc(
 				"vastai_machine_gpu_rented_bid_demand",
 				"Number of GPUs rented bid-demand",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),
 			"gpu_idle": prometheus.NewDesc(
 				"vastai_machine_gpu_idle",
 				"Number of GPUs idle",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),	
 			"machine_earn_hour": prometheus.NewDesc(
 				"vastai_machine_earn_hour",
 				"Machine earn hour",
-				[]string{"machine_id"}, nil,
+				[]string{"machine_id", "hostname"}, nil,
 			),	
 			"machine_ErrorDescription": prometheus.NewDesc(
 				"vastai_machine_ErrorDescription",
 				"Machine Error Description",
-				[]string{"machine_id", "error_description"}, nil,
+				[]string{"machine_id", "hostname", "error_description"}, nil,
 			),
 		},
 	}
@@ -357,7 +357,7 @@ func (c *VastCollector) fetchMachineEarnings(ch chan<- prometheus.Metric) {
 	}
 }
 
-func parseGpuOccupancy(occupancy string, machineID string, ch chan<- prometheus.Metric) {
+func parseGpuOccupancy(occupancy string, machineID string, hostname string, ch chan<- prometheus.Metric) {
     // Remove spaces from the occupancy string
     occupancyNoSpaces := strings.ReplaceAll(occupancy, " ", "")
     
@@ -373,10 +373,11 @@ func parseGpuOccupancy(occupancy string, machineID string, ch chan<- prometheus.
         }
         // Emitting the GPU occupancy metric with corrected index
         ch <- prometheus.MustNewConstMetric(
-            prometheus.NewDesc("vastai_machine_gpu_occupancy", "GPU occupancy state per machine and GPU number.", []string{"machine_id", "gpu"}, nil),
+            prometheus.NewDesc("vastai_machine_gpu_occupancy", "GPU occupancy state per machine and GPU number.", []string{"machine_id", "Hostname", "gpu"}, nil),
             prometheus.GaugeValue,
             float64(state),
             machineID,
+			hostname,
             strconv.Itoa(i), // i now correctly represents the GPU index
         )
     }
@@ -409,35 +410,40 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 
 	for _, machine := range machinesAPI.Machines {
 		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vast_machine_id", "Machine ID", []string{"machine_id"}, nil),
+			prometheus.NewDesc("vast_machine_id", "Machine ID", []string{"machine_id", "hostname"}, nil),
 			prometheus.GaugeValue,
 			float64(machine.MachineID),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vast_machine_timeout", "Machine timeout", []string{"machine_id"}, nil),
+			prometheus.NewDesc("vast_machine_timeout", "Machine timeout", []string{"machine_id", "hostname"}, nil),
 			prometheus.GaugeValue,
 			float64(machine.Timeout),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vast_machine_num_gpus", "Number of GPUs in the machine", []string{"machine_id"}, nil),
+			prometheus.NewDesc("vast_machine_num_gpus", "Number of GPUs in the machine", []string{"machine_id", "hostname"}, nil),
 			prometheus.GaugeValue,
 			float64(machine.NumGpus),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vast_machine_gpu_name", "Type and total number of GPUs in the machine", []string{"machine_id","gpu_name"}, nil),
+			prometheus.NewDesc("vast_machine_gpu_name", "Type and total number of GPUs in the machine", []string{"machine_id", "gpu_name", "hostname"}, nil),
 			prometheus.GaugeValue,
 			float64(machine.NumGpus),
 			strconv.Itoa(machine.MachineID),
 			machine.GpuName,
+			machine.Hostname,
 		)
 		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vast_machine_total_flops", "Machine total FLOPS", []string{"machine_id"}, nil),
+			prometheus.NewDesc("vast_machine_total_flops", "Machine total FLOPS", []string{"machine_id", "hostname"}, nil),
 			prometheus.GaugeValue,
 			machine.TotalFlops,
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 		var listedValue float64
 		if machine.Listed {
@@ -446,10 +452,11 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			listedValue = 0.0
 		}	
 		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vast_machine_Listed", "Machine Listed", []string{"machine_id"}, nil),
+			prometheus.NewDesc("vast_machine_Listed", "Machine Listed", []string{"machine_id", "hostname"}, nil),
 			prometheus.GaugeValue,
 			listedValue,
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)	
 		var verificationValue float64
 		if machine.Verification == "verified" {
@@ -459,30 +466,35 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 		}	
 		
 		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vast_machine_Verification", "Machine Verification", []string{"machine_id"}, nil),
+			prometheus.NewDesc("vast_machine_Verification", "Machine Verification", []string{"machine_id", "hostname"}, nil),
 			prometheus.GaugeValue,
 			verificationValue,
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,			
 		)
 		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vast_machine_Reliability", "Machine Reliability", []string{"machine_id"}, nil),
+			prometheus.NewDesc("vast_machine_Reliability", "Machine Reliability", []string{"machine_id", "hostname"}, nil),
 			prometheus.GaugeValue,
 			machine.Reliability2,
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
-				ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vastai_machine_InetUp", "Machine Inet Up", []string{"machine_id"}, nil),
+		ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc("vastai_machine_InetUp", "Machine Inet Up", []string{"machine_id", "hostname"}, nil),
 			prometheus.GaugeValue,
 			machine.InetUp,
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 
 		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc("vast_machine_InetDown", "Machine Inet Down", []string{"machine_id"}, nil),
+			prometheus.NewDesc("vast_machine_InetDown", "Machine Inet Down", []string{"machine_id", "hostname"}, nil),
 			prometheus.GaugeValue,
 			machine.InetDown,
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
+
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc("vast_machine_hostname", "Machine Hostname", []string{"machine_id", "hostname"}, nil),
 			prometheus.GaugeValue,
@@ -490,47 +502,55 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			strconv.Itoa(machine.MachineID),
 			machine.Hostname,
 		)
+		
 		ch <- prometheus.MustNewConstMetric(
-			c.metrics["machine_current_rentals_running"],
+			c.metrics["machine_current_rentals_running"], 
 			prometheus.GaugeValue,
 			float64(machine.CurrentRentalsRunning),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["machine_current_rentals_running_on_demand"],
 			prometheus.GaugeValue,
 			float64(machine.CurrentRentalsRunningOnDemand),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["machine_current_rentals_resident"],
 			prometheus.GaugeValue,
 			float64(machine.CurrentRentalsResident),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["machine_current_rentals_on_demand"],
 			prometheus.GaugeValue,
 			float64(machine.CurrentRentalsOnDemand),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["machine_max_disk_space"],
 			prometheus.GaugeValue,
 			float64(machine.MaxDiskSpace),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["machine_alloc_disk_space"],
 			prometheus.GaugeValue,
 			float64(machine.AllocDiskSpace),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["machine_avail_disk_space"],
 			prometheus.GaugeValue,
 			float64(machine.AvailDiskSpace),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 
 		gpuRentedOnDemand := strings.Count(machine.GpuOccupancy, "D")
@@ -542,29 +562,34 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			prometheus.GaugeValue,
 			float64(gpuRentedOnDemand),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["gpu_rented_bid_demand"],
 			prometheus.GaugeValue,
 			float64(gpuRentedBidDemand),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["gpu_idle"],
 			prometheus.GaugeValue,
 			float64(gpuIdle),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)	
 
 		gpuOccupancy := machine.GpuOccupancy // Ensure this field exists and is correctly named
         machineID := strconv.Itoa(machine.MachineID) // Convert machine ID to string
-        parseGpuOccupancy(gpuOccupancy, machineID, ch)
-		
+
+        parseGpuOccupancy(gpuOccupancy, machineID, machine.Hostname, ch)
+
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["machine_earn_hour"],
 			prometheus.GaugeValue,
 			float64(machine.EarnHour),
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 		)
 		var errorDescription string
 		var errorValue float64
@@ -586,6 +611,7 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			prometheus.GaugeValue,
 			errorValue,
 			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
 			errorDescription,
 		)
 	}
