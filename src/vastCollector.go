@@ -285,6 +285,11 @@ func NewVastCollector(apiKey string) *VastCollector {
 				"Number of GPUs rented on-demand",
 				[]string{"machine_id", "hostname"}, nil,
 			),
+			"gpu_rented_on_reserved": prometheus.NewDesc(
+				"vastai_machine_gpu_rented_on_reserved",
+				"Number of GPUs rented on-reserved",
+				[]string{"machine_id", "hostname"}, nil,
+			),			
 			"gpu_rented_bid_demand": prometheus.NewDesc(
 				"vastai_machine_gpu_rented_bid_demand",
 				"Number of GPUs rented bid-demand",
@@ -573,7 +578,12 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			float64(gpuRentedReserved),
 			strconv.Itoa(machine.MachineID),
 			machine.Hostname,  // Add this if the metric description includes the hostname
+			
 		)
+		if err != nil {
+    		log.Printf("Error creating gpu_rented_on_reserved metric: %s", err)
+    			continue  // Skip this metric and handle error appropriately
+		}
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["gpu_rented_bid_demand"],
 			prometheus.GaugeValue,
