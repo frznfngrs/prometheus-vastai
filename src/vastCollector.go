@@ -484,14 +484,14 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["machine_listed_gpu_cost"],
 			prometheus.GaugeValue,
-			float64(machine.ListedGpuCost)
+			float64(machine.ListedGpuCost),
 			strconv.Itoa(machine.MachineID),
 			machine.Hostname,
 		)
 		ch <- prometheus.MustNewConstMetric(
 			c.metrics["machine_min_bid_price"],
 			prometheus.GaugeValue,
-			float64(machine.MinBidPrice)
+			float64(machine.MinBidPrice),
 			strconv.Itoa(machine.MachineID),
 			machine.Hostname,
 		)
