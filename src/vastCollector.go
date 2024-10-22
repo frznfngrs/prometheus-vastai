@@ -364,6 +364,16 @@ func NewVastCollector(apiKey string) *VastCollector {
 				"vastai_machine_end_date",
 				"End date of the machine as a UNIX timestamp",
 				[]string{"machine_id", "hostname"}, nil,
+			),
+			"machine_listed_gpu_cost": prometheus.NewDesc(
+				"vastai_machine_listed_gpu_cost",
+				"Currently listed On-Demand Price",
+				[]string{"machine_id", "hostname"}, nil,
+			),
+			"machine_min_bid_price": prometheus.NewDesc(
+				"vastai_machine_min_bid_price",
+				"Currently listed Bid Price",
+				[]string{"machine_id", "hostname"}, nil,
 			),	
 		},
 	}
@@ -472,6 +482,20 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 
 	for _, machine := range machinesAPI.Machines {
 		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_listed_gpu_cost"],
+			prometheus.GaugeValue,
+			float64(machine.ListedGpuCost)
+			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
+		)
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_min_bid_price"],
+			prometheus.GaugeValue,
+			float64(machine.MinBidPrice)
+			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
+		)
+		ch <- prometheus.MustNewConstMetric(
 			c.metrics["machine_start_date"],
 			prometheus.GaugeValue,
 			float64(machine.StartDate)*1000,  // Use float64 for UNIX timestamps
@@ -485,7 +509,6 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			strconv.Itoa(machine.MachineID),
 			machine.Hostname,
 		)
-
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc("vast_machine_id", "Machine ID", []string{"machine_id", "hostname"}, nil),
 			prometheus.GaugeValue,
