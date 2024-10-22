@@ -51,53 +51,98 @@ type machineEarningsAPI struct {
 }
 
 type MachinesAPI struct {
-	Machines []struct {
-		MachineID                     int         `json:"machine_id"`
-		Hostname                      string      `json:"hostname"`
-		Timeout                       float64     `json:"timeout"`
-		NumGpus                       int         `json:"num_gpus"`
-		TotalFlops                    float64     `json:"total_flops"`
-		GpuName                       string      `json:"gpu_name"`
-		GpuRAM                        int         `json:"gpu_ram"`
-		GpuMaxCurTemp                 float64     `json:"gpu_max_cur_temp"`
-		GpuLanes                      int         `json:"gpu_lanes"`
-		GpuMemBw                      float64     `json:"gpu_mem_bw"`
-		BwNvlink                      float64     `json:"bw_nvlink"`
-		PcieBw                        float64     `json:"pcie_bw"`
-		PciGen                        float64     `json:"pci_gen"`
-		CPUName                       string      `json:"cpu_name"`
-		CPURAM                        int         `json:"cpu_ram"`
-		CPUCores                      int         `json:"cpu_cores"`
-		Listed                        bool        `json:"listed"`
-		CreditDiscountMax             float64     `json:"credit_discount_max"`
-		ListedMinGpuCount             int         `json:"listed_min_gpu_count"`
-		ListedGpuCost                 float64     `json:"listed_gpu_cost"`
-		ListedStorageCost             float64     `json:"listed_storage_cost"`
-		ListedInetUpCost              float64     `json:"listed_inet_up_cost"`
-		ListedInetDownCost            float64     `json:"listed_inet_down_cost"`
-		MinBidPrice                   float64     `json:"min_bid_price"`
-		GpuOccupancy                  string      `json:"gpu_occupancy"`
-		BidGpuCost                    interface{} `json:"bid_gpu_cost"`
-		DiskSpace                     int         `json:"disk_space"`
-		MaxDiskSpace                  int         `json:"max_disk_space"`
-		AllocDiskSpace                int         `json:"alloc_disk_space"`
-		AvailDiskSpace                int         `json:"avail_disk_space"`
-		DiskName                      string      `json:"disk_name"`
-		DiskBw                        float64     `json:"disk_bw"`
-		InetUp                        float64     `json:"inet_up"`
-		InetDown                      float64     `json:"inet_down"`
-		EarnHour                      float64     `json:"earn_hour"`
-		EarnDay                       float64     `json:"earn_day"`
-		Verification                  string      `json:"verification"`
-		ErrorDescription              interface{} `json:"error_description"`
-		CurrentRentalsRunning         int         `json:"current_rentals_running"`
-		CurrentRentalsRunningOnDemand int         `json:"current_rentals_running_on_demand"`
-		CurrentRentalsResident        int         `json:"current_rentals_resident"`
-		CurrentRentalsOnDemand        int         `json:"current_rentals_on_demand"`
-		Reliability2                  float64     `json:"reliability2"`
-		DirectPortCount               int         `json:"direct_port_count"`
-	} `json:"machines"`
+    Machines []struct {
+        MachineID                     int         `json:"machine_id"`
+        Hostname                      string      `json:"hostname"`
+        Geolocation                   string      `json:"geolocation"`
+        Timeout                       float64     `json:"timeout"`
+        MoboName                      string      `json:"mobo_name"`
+        NumGpus                       int         `json:"num_gpus"`
+        TotalFlops                    float64     `json:"total_flops"`
+        GpuName                       string      `json:"gpu_name"`
+        GpuRAM                        int         `json:"gpu_ram"`
+        GpuMaxCurTemp                 float64     `json:"gpu_max_cur_temp"`
+        GpuLanes                      int         `json:"gpu_lanes"`
+        GpuMemBw                      float64     `json:"gpu_mem_bw"`
+        BwNvlink                      float64     `json:"bw_nvlink"`
+        PcieBw                        float64     `json:"pcie_bw"`
+        PciGen                        float64     `json:"pci_gen"`
+        CPUName                       string      `json:"cpu_name"`
+        CPURAM                        int         `json:"cpu_ram"`
+        CPUCores                      int         `json:"cpu_cores"`
+        Listed                        bool        `json:"listed"`
+        StartDate                     float64     `json:"start_date"` // UNIX timestamp
+        EndDate                       float64     `json:"end_date"`   // UNIX timestamp
+        ListedMinGpuCount             int         `json:"listed_min_gpu_count"`
+        ListedGpuCost                 float64     `json:"listed_gpu_cost"`
+        ListedStorageCost             float64     `json:"listed_storage_cost"`
+        ListedInetUpCost              float64     `json:"listed_inet_up_cost"`
+        ListedInetDownCost            float64     `json:"listed_inet_down_cost"`
+        MinBidPrice                   float64     `json:"min_bid_price"`
+        GpuOccupancy                  string      `json:"gpu_occupancy"`
+        BidGpuCost                    float64     `json:"bid_gpu_cost"`
+        BidImage                      string      `json:"bid_image"`
+        BidImageArgs                  string      `json:"bid_image_args"`
+        BidImageArgsStr               string      `json:"bid_image_args_str"`
+        DiskSpace                     int         `json:"disk_space"`
+        MaxDiskSpace                  int         `json:"max_disk_space"`
+        AllocDiskSpace                int         `json:"alloc_disk_space"`
+        AvailDiskSpace                int         `json:"avail_disk_space"`
+        DiskName                      string      `json:"disk_name"`
+        DiskBw                        float64     `json:"disk_bw"`
+        InetUp                        float64     `json:"inet_up"`
+        InetDown                      float64     `json:"inet_down"`
+        EarnHour                      float64     `json:"earn_hour"`
+        EarnDay                       float64     `json:"earn_day"`
+        Verification                  string      `json:"verification"`
+        ErrorDescription              string      `json:"error_description"`
+        CurrentRentalsRunning         int         `json:"current_rentals_running"`
+        CurrentRentalsRunningOnDemand int         `json:"current_rentals_running_on_demand"`
+        CurrentRentalsResident        int         `json:"current_rentals_resident"`
+        CurrentRentalsOnDemand        int         `json:"current_rentals_on_demand"`
+        Reliability2                  float64     `json:"reliability2"`
+        DirectPortCount               int         `json:"direct_port_count"`
+        PublicIPAddr                  string      `json:"public_ipaddr"`
+        Clients                       []Client    `json:"clients"` // New nested struct
+    } `json:"machines"`
 }
+
+type Client struct {
+    ID                int     `json:"id"`
+    LastUpdate        float64 `json:"last_update"`        // Changed to float64 to handle decimal values
+    LastProc          float64 `json:"last_proc"`          // Changed to float64 to handle decimal values
+    Type              string  `json:"type"`
+    Label             string  `json:"label"`
+    ClientID          int     `json:"client_id"`
+    HostID            int     `json:"host_id"`
+    CreatedAt         float64 `json:"created_at"`         // Changed to float64
+    DeletedAt         float64 `json:"deleted_at"`         // Changed to float64
+    StartDate         float64 `json:"start_date"`         // Changed to float64
+    EndDate           float64 `json:"end_date"`           // Changed to float64
+    ClientRunTime     float64 `json:"client_run_time"`    // Changed to float64 to handle decimal values
+    ClientStopTime    float64 `json:"client_stop_time"`   // Changed to float64 to handle decimal values
+    ClientUnloadTime  float64 `json:"client_unload_time"` // Changed to float64 to handle decimal values
+    HostRunTime       float64 `json:"host_run_time"`      // Changed to float64 to handle decimal values
+    HostStopTime      float64 `json:"host_stop_time"`     // Changed to float64 to handle decimal values
+    HostUnloadTime    float64 `json:"host_unload_time"`   // Changed to float64 to handle decimal values
+    NextTransDate     float64 `json:"next_trans_date"`    // Changed to float64
+    MaxSpend          float64 `json:"max_spend"`
+    CreatedFrom       int     `json:"created_from"`
+    BundleID          int     `json:"bundle_id"`
+    LastBillup        float64 `json:"last_billup"`        // Changed to float64
+    IsSystem          float64 `json:"is_system"`
+    EarnSec           int     `json:"earn_sec"`
+    EarnMin           int     `json:"earn_min"`
+    EarnHour          int     `json:"earn_hour"`
+    EarnDay           int     `json:"earn_day"`
+    LossSec           int     `json:"loss_sec"`
+    LossMin           int     `json:"loss_min"`
+    LossHour          int     `json:"loss_hour"`
+    LossDay           int     `json:"loss_day"`
+    MinBidPrice       float64 `json:"min_bid_price"`
+    Dlperf            float64 `json:"dlperf"`
+}
+
 
 type VastCollector struct {
 	apiKey  string
@@ -310,6 +355,16 @@ func NewVastCollector(apiKey string) *VastCollector {
 				"Machine Error Description",
 				[]string{"machine_id", "hostname", "error_description"}, nil,
 			),
+			"machine_start_date": prometheus.NewDesc(
+				"vastai_machine_start_date",
+				"Start date of the machine as a UNIX timestamp",
+				[]string{"machine_id", "hostname"}, nil,
+			),
+			"machine_end_date": prometheus.NewDesc(
+				"vastai_machine_end_date",
+				"End date of the machine as a UNIX timestamp",
+				[]string{"machine_id", "hostname"}, nil,
+			),	
 		},
 	}
 }
@@ -416,6 +471,21 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 	}
 
 	for _, machine := range machinesAPI.Machines {
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_start_date"],
+			prometheus.GaugeValue,
+			float64(machine.StartDate)*1000,  // Use float64 for UNIX timestamps
+			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
+		)
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_end_date"],
+			prometheus.GaugeValue,
+			float64(machine.EndDate)*1000,
+			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
+		)
+
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc("vast_machine_id", "Machine ID", []string{"machine_id", "hostname"}, nil),
 			prometheus.GaugeValue,
@@ -613,7 +683,7 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 		)
 		var errorDescription string
 		var errorValue float64
-		if machine.ErrorDescription == nil {
+		if machine.ErrorDescription == "" {
 			errorDescription = ""
 			errorValue = 1.0 // No error
 		} else {
