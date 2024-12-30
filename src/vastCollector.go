@@ -82,7 +82,7 @@ type MachinesAPI struct {
         GpuOccupancy                  string      `json:"gpu_occupancy"`
         BidGpuCost                    float64     `json:"bid_gpu_cost"`
         BidImage                      string      `json:"bid_image"`
-        BidImageArgs                  string      `json:"bid_image_args"`
+        BidImageArgs                  []string    `json:"bid_image_args"`
         BidImageArgsStr               string      `json:"bid_image_args_str"`
         DiskSpace                     int         `json:"disk_space"`
         MaxDiskSpace                  int         `json:"max_disk_space"`
