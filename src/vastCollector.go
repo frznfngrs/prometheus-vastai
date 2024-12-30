@@ -153,6 +153,11 @@ func NewVastCollector(apiKey string) *VastCollector {
 	return &VastCollector{
 		apiKey: apiKey,
 		metrics: map[string]*prometheus.Desc{
+			"account_balance": prometheus.NewDesc(
+				"vastai_account_balance",
+				"The current account balance of the user",
+				nil, nil,
+			),
 			"total_gpu_summary": prometheus.NewDesc(
 				"vastai_summary_total_gpu",
 				"Total GPU earnings in summary",
@@ -379,6 +384,41 @@ func NewVastCollector(apiKey string) *VastCollector {
 	}
 }
 
+func (c *VastCollector) fetchAccountBalance(ch chan<- prometheus.Metric) {
+    balanceURL := fmt.Sprintf("https://console.vast.ai/api/v0/users/current?api_key=%s", c.apiKey)
+    req, err := http.NewRequest("GET", balanceURL, nil)
+    if err != nil {
+        log.Printf("Failed to create request: %s", err)
+        return
+    }
+    req.Header.Set("Accept", "application/json")
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        log.Printf("Failed to make request: %s", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    var accountData struct {
+        Balance float64 `json:"balance"`
+    }
+
+    err = json.NewDecoder(resp.Body).Decode(&accountData)
+    if err != nil {
+        log.Printf("Failed to decode JSON response: %s", err)
+        return
+    }
+
+    // Add the balance metric to Prometheus
+    ch <- prometheus.MustNewConstMetric(
+        c.metrics["account_balance"],
+        prometheus.GaugeValue,
+        accountData.Balance,
+    )
+}
+
 func (c *VastCollector) fetchMachineEarnings(ch chan<- prometheus.Metric) {
 	earningsURL := fmt.Sprintf("https://console.vast.ai/api/v0/users/me/machine-earnings?api_key=%s", c.apiKey)
 	req, err := http.NewRequest("GET", earningsURL, nil)
@@ -426,6 +466,7 @@ func (c *VastCollector) fetchMachineEarnings(ch chan<- prometheus.Metric) {
 		ch <- prometheus.MustNewConstMetric(c.metrics["per_day_bwd_earn"], prometheus.GaugeValue, day.BwdEarn, strconv.Itoa(day.Day))
 	}
 }
+
 
 func parseGpuOccupancy(occupancy string, machineID string, hostname string, ch chan<- prometheus.Metric) {
     // Remove spaces from the occupancy string
@@ -742,5 +783,6 @@ func (c *VastCollector) Describe(ch chan<- *prometheus.Desc) {
 func (c *VastCollector) Collect(ch chan<- prometheus.Metric) {
 	c.fetchMachineEarnings(ch)
 	c.fetchMachines(ch)
+	c.fetchAccountBalance(ch)  
 	// Call other fetch methods as you add them
 }
