@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -380,8 +381,21 @@ func NewVastCollector(apiKey string) *VastCollector {
 				"Currently listed Bid Price",
 				[]string{"machine_id", "hostname"}, nil,
 			),	
+			"machine_gpu_max_cur_temp": prometheus.NewDesc(
+				"vastai_machine_gpu_max_cur_temp",
+				"Maximum current GPU temperature",
+				[]string{"machine_id", "hostname"}, nil,
+			),
 		},
 	}
+}
+
+// Helper function for min
+func min(a, b int) int {
+    if a < b {
+        return a
+    }
+    return b
 }
 
 func (c *VastCollector) fetchAccountBalance(ch chan<- prometheus.Metric) {
@@ -401,15 +415,36 @@ func (c *VastCollector) fetchAccountBalance(ch chan<- prometheus.Metric) {
     }
     defer resp.Body.Close()
 
+    // Check HTTP status code
+    if resp.StatusCode != http.StatusOK {
+        log.Printf("API returned non-200 status code: %d %s", resp.StatusCode, resp.Status)
+        return
+    }
+
+    // Read response body for debugging
+    bodyBytes, err := io.ReadAll(resp.Body)
+    if err != nil {
+        log.Printf("Failed to read response body: %s", err)
+        return
+    }
+
     var accountData struct {
         Balance float64 `json:"balance"`
     }
 
-    err = json.NewDecoder(resp.Body).Decode(&accountData)
+    err = json.Unmarshal(bodyBytes, &accountData)
     if err != nil {
         log.Printf("Failed to decode JSON response: %s", err)
+        log.Printf("Response Content-Type: %s", resp.Header.Get("Content-Type"))
+        if len(bodyBytes) > 0 {
+            log.Printf("Response body (first 500 chars): %s", string(bodyBytes[:min(len(bodyBytes), 500)]))
+        } else {
+            log.Printf("Response body is empty")
+        }
         return
     }
+
+    log.Printf("Successfully fetched account balance: $%.2f", accountData.Balance)
 
     // Add the balance metric to Prometheus
     ch <- prometheus.MustNewConstMetric(
@@ -423,7 +458,7 @@ func (c *VastCollector) fetchMachineEarnings(ch chan<- prometheus.Metric) {
 	earningsURL := fmt.Sprintf("https://console.vast.ai/api/v0/users/me/machine-earnings?api_key=%s", c.apiKey)
 	req, err := http.NewRequest("GET", earningsURL, nil)
 	if err != nil {
-		log.Fatalf("Failed to create request: %s", err)
+		log.Printf("Failed to create request: %s", err)
 		return
 	}
 	req.Header.Set("Accept", "application/json")
@@ -431,17 +466,38 @@ func (c *VastCollector) fetchMachineEarnings(ch chan<- prometheus.Metric) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatalf("Failed to make request: %s", err)
+		log.Printf("Failed to make request: %s", err)
 		return
 	}
 	defer resp.Body.Close()
 
-	var earningsData machineEarningsAPI
-	err = json.NewDecoder(resp.Body).Decode(&earningsData)
-	if err != nil {
-		log.Fatalf("Failed to decode JSON response: %s", err)
+	// Check HTTP status code
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("API returned non-200 status code: %d %s", resp.StatusCode, resp.Status)
 		return
 	}
+
+	// Read response body for debugging
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Failed to read response body: %s", err)
+		return
+	}
+
+	var earningsData machineEarningsAPI
+	err = json.Unmarshal(bodyBytes, &earningsData)
+	if err != nil {
+		log.Printf("Failed to decode JSON response: %s", err)
+		log.Printf("Response Content-Type: %s", resp.Header.Get("Content-Type"))
+		if len(bodyBytes) > 0 {
+			log.Printf("Response body (first 500 chars): %s", string(bodyBytes[:min(len(bodyBytes), 500)]))
+		} else {
+			log.Printf("Response body is empty")
+		}
+		return
+	}
+
+	log.Printf("Successfully fetched machine earnings - %d machines, current balance: $%.2f", len(earningsData.PerMachine), earningsData.Current.Balance)
 
 	ch <- prometheus.MustNewConstMetric(c.metrics["total_gpu_summary"], prometheus.GaugeValue, earningsData.Summary.TotalGpu)
 	ch <- prometheus.MustNewConstMetric(c.metrics["total_stor_summary"], prometheus.GaugeValue, earningsData.Summary.TotalStor)
@@ -501,7 +557,7 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 	machinesURL := fmt.Sprintf("https://console.vast.ai/api/v0/machines/?api_key=%s", c.apiKey)
 	req, err := http.NewRequest("GET", machinesURL, nil)
 	if err != nil {
-		log.Fatalf("Failed to create request: %s", err)
+		log.Printf("Failed to create request: %s", err)
 		return
 	}
 	req.Header.Set("Accept", "application/json")
@@ -509,17 +565,38 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatalf("Failed to make request: %s", err)
+		log.Printf("Failed to make request: %s", err)
 		return
 	}
 	defer resp.Body.Close()
 
-	var machinesAPI MachinesAPI
-	err = json.NewDecoder(resp.Body).Decode(&machinesAPI)
-	if err != nil {
-		log.Fatalf("Failed to decode JSON response: %s", err)
+	// Check HTTP status code
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("API returned non-200 status code: %d %s", resp.StatusCode, resp.Status)
 		return
 	}
+
+	// Read response body for debugging
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Failed to read response body: %s", err)
+		return
+	}
+
+	var machinesAPI MachinesAPI
+	err = json.Unmarshal(bodyBytes, &machinesAPI)
+	if err != nil {
+		log.Printf("Failed to decode JSON response: %s", err)
+		log.Printf("Response Content-Type: %s", resp.Header.Get("Content-Type"))
+		if len(bodyBytes) > 0 {
+			log.Printf("Response body (first 500 chars): %s", string(bodyBytes[:min(len(bodyBytes), 500)]))
+		} else {
+			log.Printf("Response body is empty")
+		}
+		return
+	}
+
+	log.Printf("Successfully fetched %d machines data", len(machinesAPI.Machines))
 
 	for _, machine := range machinesAPI.Machines {
 		ch <- prometheus.MustNewConstMetric(
@@ -533,6 +610,13 @@ func (c *VastCollector) fetchMachines(ch chan<- prometheus.Metric) {
 			c.metrics["machine_min_bid_price"],
 			prometheus.GaugeValue,
 			float64(machine.MinBidPrice),
+			strconv.Itoa(machine.MachineID),
+			machine.Hostname,
+		)
+		ch <- prometheus.MustNewConstMetric(
+			c.metrics["machine_gpu_max_cur_temp"],
+			prometheus.GaugeValue,
+			machine.GpuMaxCurTemp,
 			strconv.Itoa(machine.MachineID),
 			machine.Hostname,
 		)
